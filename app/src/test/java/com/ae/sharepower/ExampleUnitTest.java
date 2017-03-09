@@ -1,4 +1,4 @@
-package com.alierbas.powershare;
+package com.ae.sharepower;
 
 import org.junit.Test;
 

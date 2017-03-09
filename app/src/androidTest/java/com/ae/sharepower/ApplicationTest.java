@@ -1,4 +1,4 @@
-package com.alierbas.powershare;
+package com.ae.sharepower;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
