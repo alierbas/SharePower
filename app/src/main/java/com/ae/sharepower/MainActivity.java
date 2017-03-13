@@ -1,4 +1,21 @@
 package com.ae.sharepower;
+/*
+*
+*
+*
+*
+* Valid from: Sat Mar 11 16:40:18 GMT 2017 until: Mon Mar 04 16:40:18 GMT 2047
+Certificate fingerprints:
+	 MD5:  2B:F4:AA:7D:7C:3F:98:EC:4F:04:9B:5B:B1:9B:50:CA
+	 SHA1: A3:53:56:C7:D0:AE:AA:3B:26:5D:4B:2E:44:BD:39:A9:8A:55:31:0C
+	 Signature algorithm name: SHA1withRSA
+	 Version: 1
+*
+*
+*
+*
+*
+* */
 
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -9,10 +26,10 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
-
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
@@ -22,10 +39,18 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
+
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
 
     MapView mapView;
+
+    private static final int VID = 0x2341;
+    private static final int PID = 0x0001;
+    private static UsbController sUsbController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +73,43 @@ public class MainActivity extends AppCompatActivity
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
 
+        if(sUsbController == null){
+            sUsbController = new UsbController(this, mConnectionHandler, VID, PID);
+        }
+
+
+        Timer myTimer = new Timer();
+        myTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+
+                //SEND INTEGER
+                sUsbController.send((byte)(10&0xFF));
+
+                Log.e("USB_DEBUG","---");
+            }
+
+        }, 0, 1000);
+
+
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        mapView.onResume();
+    }
+
+    @Override
+    protected void onPause(){
+        super.onPause();
+        mapView.onPause();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState){
+        super.onSaveInstanceState(outState);
+        mapView.onSaveInstanceState(outState);
     }
 
     @Override
@@ -109,23 +171,26 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
+
+        googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+        googleMap.getUiSettings().setZoomControlsEnabled(true);
+
         LatLng NYC = new LatLng(41.004962, 29.068801);
         googleMap.addMarker(
                 new MarkerOptions().position(NYC).title("ME")).setIcon(
                 BitmapDescriptorFactory
                         .defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
 
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(NYC, 18));
 
         LatLng istanbul = new LatLng(41.005006, 29.068903);
         googleMap.addMarker(
                 new MarkerOptions().position(istanbul)
-                        .title("CHARGE POINT")
-                        .draggable(true))
+                        .title("CHARGE POINT"))
                 .setIcon(
                         BitmapDescriptorFactory
                                 .defaultMarker(BitmapDescriptorFactory.HUE_RED));
 
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(istanbul,14));
 
         googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
@@ -155,4 +220,25 @@ public class MainActivity extends AppCompatActivity
 
 
     }
+
+    private final IUsbConnectionHandler mConnectionHandler = new IUsbConnectionHandler() {
+        @Override
+        public void onUsbStopped() {
+            Log.e("USB_DEBUG","Usb stopped!");
+        }
+
+        @Override
+        public void onErrorLooperRunningAlready() {
+            Log.e("USB_DEBUG","Looper already running!");
+        }
+
+        @Override
+        public void onDeviceNotFound() {
+            if(sUsbController != null){
+                sUsbController.stop();
+                sUsbController = null;
+            }
+        }
+    };
+
 }
