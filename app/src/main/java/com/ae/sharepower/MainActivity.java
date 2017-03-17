@@ -18,7 +18,10 @@ Certificate fingerprints:
 * */
 
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AlertDialog;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -39,18 +42,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import java.util.Timer;
-import java.util.TimerTask;
 
-
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
+public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback {
 
     MapView mapView;
-
-    private static final int VID = 0x2341;
-    private static final int PID = 0x0001;
-    private static UsbController sUsbController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,25 +67,6 @@ public class MainActivity extends AppCompatActivity
         mapView = (MapView) findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
-
-        if(sUsbController == null){
-            sUsbController = new UsbController(this, mConnectionHandler, VID, PID);
-        }
-
-
-        Timer myTimer = new Timer();
-        myTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-
-                //SEND INTEGER
-                sUsbController.send((byte)(10&0xFF));
-
-                Log.e("USB_DEBUG","---");
-            }
-
-        }, 0, 1000);
-
 
     }
 
@@ -150,9 +126,14 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
-//        if (id == R.id.nav_camera) {
-//            // Handle the camera action
-//        } else if (id == R.id.nav_gallery) {
+
+        if (id == R.id.nav_first_fragment) {
+
+            Intent myIntent = new Intent(this, ChargeConsole.class);
+            startActivity(myIntent);
+
+        }
+// else if (id == R.id.nav_gallery) {
 //
 //        } else if (id == R.id.nav_slideshow) {
 //
@@ -221,24 +202,6 @@ public class MainActivity extends AppCompatActivity
 
     }
 
-    private final IUsbConnectionHandler mConnectionHandler = new IUsbConnectionHandler() {
-        @Override
-        public void onUsbStopped() {
-            Log.e("USB_DEBUG","Usb stopped!");
-        }
 
-        @Override
-        public void onErrorLooperRunningAlready() {
-            Log.e("USB_DEBUG","Looper already running!");
-        }
-
-        @Override
-        public void onDeviceNotFound() {
-            if(sUsbController != null){
-                sUsbController.stop();
-                sUsbController = null;
-            }
-        }
-    };
 
 }
