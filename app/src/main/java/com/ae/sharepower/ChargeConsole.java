@@ -72,7 +72,6 @@ public class ChargeConsole extends AppCompatActivity{
                     serialPort = UsbSerialDevice.createUsbSerialDevice(device, connection);
                     if (serialPort != null) {
                         if (serialPort.open()) { //Set Serial Connection Parameters.
-                            setUiEnabled(true);
                             serialPort.setBaudRate(9600);
                             serialPort.setDataBits(UsbSerialInterface.DATA_BITS_8);
                             serialPort.setStopBits(UsbSerialInterface.STOP_BITS_1);
@@ -109,7 +108,6 @@ public class ChargeConsole extends AppCompatActivity{
         postedlevelTv = (TextView) findViewById(R.id.postedlevel);
         chargeLevelTv = (TextView) findViewById(R.id.chargelevel);
 
-        setUiEnabled(false);
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_USB_PERMISSION);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
@@ -117,11 +115,6 @@ public class ChargeConsole extends AppCompatActivity{
         registerReceiver(broadcastReceiver, filter);
 
         registerReceiver(mBatInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-    }
-
-    public void setUiEnabled(boolean bool) {
-        sendButton.setEnabled(bool);
-        stopButton.setEnabled(bool);
     }
 
     public void onClickStart(View view) {
@@ -155,8 +148,9 @@ public class ChargeConsole extends AppCompatActivity{
     }
 
     public void onClickStop(View view) {
-        setUiEnabled(false);
-        serialPort.close();
+        String string = "0";
+        serialPort.write(string.getBytes());
+//      serialPort.close();
         endCharge = chargeLevel;
     }
 
