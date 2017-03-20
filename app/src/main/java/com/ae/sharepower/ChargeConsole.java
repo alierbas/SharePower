@@ -27,13 +27,27 @@ import com.felhr.usbserial.UsbSerialDevice;
 public class ChargeConsole extends AppCompatActivity{
 
     public final String ACTION_USB_PERMISSION = "com.ae.sharepower.USB_PERMISSION";
-    Button startButton, sendButton, clearButton, stopButton;
-    TextView textView;
-    EditText editText;
-    UsbManager usbManager;
-    UsbDevice device;
-    UsbSerialDevice serialPort;
-    UsbDeviceConnection connection;
+    private Button sendButton, stopButton;
+    private UsbManager usbManager;
+    private UsbDevice device;
+    private UsbSerialDevice serialPort;
+    private UsbDeviceConnection connection;
+
+    private  TextView chargeLevelTv;
+    private TextView postedlevelTv;
+
+    private int chargeLevel;
+    private int startCharge;
+    private int endCharge;
+
+    private BroadcastReceiver mBatInfoReceiver = new BroadcastReceiver(){
+        @Override
+        public void onReceive(Context arg0, Intent intent) {
+            chargeLevel = intent.getIntExtra("level", 0);
+            chargeLevelTv.setText("" + Integer.toString(chargeLevel) + "%");
+            postedlevelTv.setText("" + Integer.toString(chargeLevel-startCharge) + "%");
+        }
+    };
 
     UsbSerialInterface.UsbReadCallback mCallback = new UsbSerialInterface.UsbReadCallback() { //Defining a Callback which triggers whenever data is read.
         @Override
@@ -42,7 +56,6 @@ public class ChargeConsole extends AppCompatActivity{
             try {
                 data = new String(arg0, "UTF-8");
                 data.concat("/n");
-                tvAppend(textView, data);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
@@ -66,7 +79,6 @@ public class ChargeConsole extends AppCompatActivity{
                             serialPort.setParity(UsbSerialInterface.PARITY_NONE);
                             serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
                             serialPort.read(mCallback);
-                            tvAppend(textView,"Serial Connection Opened!\n");
 
                         } else {
                             Log.d("SERIAL", "PORT NOT OPEN");
@@ -78,13 +90,12 @@ public class ChargeConsole extends AppCompatActivity{
                     Log.d("SERIAL", "PERM NOT GRANTED");
                 }
             } else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_ATTACHED)) {
-                onClickStart(startButton);
+                onClickStart(sendButton);
             } else if (intent.getAction().equals(UsbManager.ACTION_USB_DEVICE_DETACHED)) {
                 onClickStop(stopButton);
             }
         }
     };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,12 +103,12 @@ public class ChargeConsole extends AppCompatActivity{
         setContentView(R.layout.activity_charge_console);
 
         usbManager = (UsbManager) getSystemService(this.USB_SERVICE);
-        startButton = (Button) findViewById(R.id.buttonStart);
         sendButton = (Button) findViewById(R.id.buttonSend);
-        clearButton = (Button) findViewById(R.id.buttonClear);
         stopButton = (Button) findViewById(R.id.buttonStop);
-        editText = (EditText) findViewById(R.id.editText);
-        textView = (TextView) findViewById(R.id.textView);
+
+        postedlevelTv = (TextView) findViewById(R.id.postedlevel);
+        chargeLevelTv = (TextView) findViewById(R.id.chargelevel);
+
         setUiEnabled(false);
         IntentFilter filter = new IntentFilter();
         filter.addAction(ACTION_USB_PERMISSION);
@@ -105,14 +116,12 @@ public class ChargeConsole extends AppCompatActivity{
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(broadcastReceiver, filter);
 
+        registerReceiver(mBatInfoReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
     }
 
-
     public void setUiEnabled(boolean bool) {
-        startButton.setEnabled(!bool);
         sendButton.setEnabled(bool);
         stopButton.setEnabled(bool);
-        textView.setEnabled(bool);
     }
 
     public void onClickStart(View view) {
@@ -140,31 +149,15 @@ public class ChargeConsole extends AppCompatActivity{
     }
 
     public void onClickSend(View view) {
-        String string = editText.getText().toString();
+        String string = "11";
         serialPort.write(string.getBytes());
-        tvAppend(textView, "\nData Sent : " + string + "\n");
+        startCharge = chargeLevel;
     }
 
     public void onClickStop(View view) {
         setUiEnabled(false);
         serialPort.close();
-        tvAppend(textView,"\nSerial Connection Closed! \n");
-    }
-
-    public void onClickClear(View view) {
-        textView.setText(" ");
-    }
-
-    private void tvAppend(TextView tv, CharSequence text) {
-        final TextView ftv = tv;
-        final CharSequence ftext = text;
-
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                ftv.append(ftext);
-            }
-        });
+        endCharge = chargeLevel;
     }
 
 
